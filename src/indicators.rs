@@ -51,7 +51,16 @@ pub fn rsi(stock_data: &[StockData]) -> Vec<f32> {
     // }
 }
 
-pub fn ema(n: f32, stock_data: StockData) {
+pub fn ema(days: f32, stock_data: &[StockData]) -> Vec<f32>{
+    let smoothing = 2.0;
+    let m = smoothing/(1.0 + days);
+
+    let mut ema: Vec<f32> = Vec::new();
+    ema.push(stock_data[0].close * m);
+    for i in 1..stock_data.len() {
+        ema.push(stock_data[i].close * m + ema[i-1] * (1.0 - m));
+    }
+    ema
 }
 
 pub fn bollinger_bands() {}

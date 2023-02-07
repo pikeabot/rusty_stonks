@@ -6,13 +6,14 @@ pub fn mean_reversion() -> Result<(), Box<dyn std::error::Error>> {
     let data = postgres_utils::get_stock_data("spy");
     let rows = postgres_utils::convert_to_stock_data_struct(data);
     let rsi = indicators::rsi(&rows);
+    let ema = indicators::ema(20.0, &rows);
 
     let closing_prices = postgres_utils::get_stock_closes(&rows);
-    draw_mean_reversion_chart(closing_prices, rsi).expect("TODO: panic message");
+    draw_mean_reversion_chart(closing_prices, rsi, ema).expect("TODO: panic message");
     Ok(())
 }
 
-fn draw_mean_reversion_chart(closing_prices: Vec<f32>, rsi: Vec<f32>) -> Result<(), Box<dyn std::error::Error>> {
+fn draw_mean_reversion_chart(closing_prices: Vec<f32>, rsi: Vec<f32>, ema: Vec<f32>) -> Result<(), Box<dyn std::error::Error>> {
     // Draw chart
     let root = BitMapBackend::new("mean_reversion.png", (640, 480)).into_drawing_area();
     root.fill(&WHITE);
@@ -41,6 +42,12 @@ fn draw_mean_reversion_chart(closing_prices: Vec<f32>, rsi: Vec<f32>) -> Result<
     chart.draw_series(LineSeries::new(
         rsi.into_iter().map(|x | {t_rsi+=1.0; (t_rsi, x) } ),
         &RED,
+    ))?;
+
+    let mut t_ema = 1.0;
+    chart.draw_series(LineSeries::new(
+        ema.into_iter().map(|x | {t_ema+=1.0; (t_ema, x) } ),
+        &GREEN,
     ))?;
 
     let mut t_close = 0.0;
