@@ -1,4 +1,5 @@
-# Dohvasion Backend
+# Rusty Stonks
+Killing two birds with one stone. Learning Rust while trying to write some algorithmic trading functions
 
 ## Postgres
 
@@ -8,4 +9,4 @@ In bash command line:
 
 ### 
 Log into psql
-`$ psql -U postgres -p bonitis`
+`$ psql -U postgres -p [it's not so secret]
