@@ -33,7 +33,7 @@ pub fn get_stock_data(ticker: &str)  -> Result<Vec<StockData>, Error>{
 
     let mut row_vector: Vec<StockData> = Vec::new();
     // let sql_query:&str = &format!("SELECT * FROM public.{} ORDER BY date DESC LIMIT 5", ticker.to_lowercase());
-    let sql_query:&str = &format!("SELECT * FROM public.{} ORDER BY date", ticker.to_lowercase());
+    let sql_query:&str = &format!("SELECT * FROM public.{}", ticker.to_lowercase());
     for row in client.query(sql_query, &[])? {
         let stockdata = StockData {
             date: row.get(0),
