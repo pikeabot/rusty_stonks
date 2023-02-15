@@ -3,12 +3,12 @@
 use plotters::prelude::*;
 
 pub fn mean_reversion() -> Result<(), Box<dyn std::error::Error>> {
-    let data = postgres_utils::get_stock_data("spy");
-    let rows = postgres_utils::convert_to_stock_data_struct(data);
-    let rsi = indicators::rsi(&rows);
-    let ema = indicators::ema(20.0, &rows);
+    let result_data = postgres_utils::get_stock_data("spy");
+    let data = result_data.unwrap();
+    let rsi = indicators::rsi(&data);
+    let ema = indicators::ema(20.0, &data);
 
-    let closing_prices = postgres_utils::get_stock_closes(&rows);
+    let closing_prices = postgres_utils::get_stock_closes(&data);
     draw_mean_reversion_chart(closing_prices, rsi, ema).expect("TODO: panic message");
     Ok(())
 }
