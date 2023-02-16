@@ -48,9 +48,8 @@ pub fn get_stock_data(ticker: &str)  -> Result<Vec<StockData>, Error>{
         };
         row_vector.push(stockdata);
     }
-    // for i in 0..5 {
-    //     println!("{}", row_vector[i].date);
-    // }
+   row_vector.sort_by_key(|x| x.date);
+
     Ok(row_vector)
 }
 
