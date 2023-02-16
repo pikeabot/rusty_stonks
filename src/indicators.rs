@@ -45,9 +45,6 @@ pub fn sma(days: f32, stock_data: &[StockData]) -> Vec<(NaiveDate, f32)>{
         }
         sma.push(( stock_data[i].date.clone(), total/days ));
     }
-    for i in 0..5 {
-        println!("{} {}", sma[i].0, sma[i].1);
-    }
     sma
 }
 
