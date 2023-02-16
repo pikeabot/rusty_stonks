@@ -12,12 +12,14 @@ Indexes:
     "SPY_pkey" PRIMARY KEY, btree (date)
  */
 
-
+use std::os::unix::fs::chroot;
+// use actix_web::cookie::Expiration::DateTime;
+use chrono::NaiveDate;
 use postgres::{Client, Error, NoTls};
 
 
 pub struct StockData {
-    pub date: String,
+    pub date: NaiveDate,
     pub close: f32,
     pub volume: i32,
     pub open: f32,
@@ -35,8 +37,9 @@ pub fn get_stock_data(ticker: &str)  -> Result<Vec<StockData>, Error>{
     // let sql_query:&str = &format!("SELECT * FROM public.{} ORDER BY date DESC LIMIT 5", ticker.to_lowercase());
     let sql_query:&str = &format!("SELECT * FROM public.{}", ticker.to_lowercase());
     for row in client.query(sql_query, &[])? {
+        let dt = chrono::NaiveDate::parse_from_str(row.get(0), "%m/%d/%Y").unwrap();
         let stockdata = StockData {
-            date: row.get(0),
+            date: dt,
             close: row.get(1),
             volume: row.get(2),
             open: row.get(3),
@@ -45,6 +48,9 @@ pub fn get_stock_data(ticker: &str)  -> Result<Vec<StockData>, Error>{
         };
         row_vector.push(stockdata);
     }
+    // for i in 0..5 {
+    //     println!("{}", row_vector[i].date);
+    // }
     Ok(row_vector)
 }
 
