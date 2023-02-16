@@ -63,8 +63,21 @@ pub fn ema(days: f32, stock_data: &[StockData]) -> Vec<(NaiveDate, f32)>{
 
 pub fn bollinger_bands() {}
 
-pub fn standard_deviation() {}
+pub fn on_balance_volume(stock_data: &[StockData]) -> Vec<(NaiveDate, i64)> {
+    let mut obv: Vec<(NaiveDate, i64)> = Vec::new();
+    obv.push((stock_data[0].date, stock_data[0].volume as i64));
+    for i in 1..stock_data.len() {
+        let mut vol: i64 = 0;
+        if stock_data[i].close > stock_data[i-1].close {
+            vol = obv[i-1].1 + stock_data[i].volume as i64;
+        }   else if stock_data[i].close < stock_data[i-1].close  {
+            vol = obv[i-1].1 - stock_data[i].volume as i64;
+        }
+        obv.push((stock_data[i].date, vol));
+    }
+    obv
+}
 
-pub fn on_balance_volume() {}
+pub fn standard_deviation() {}
 
 
