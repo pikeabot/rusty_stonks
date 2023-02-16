@@ -55,6 +55,9 @@ pub fn ema(days: f32, stock_data: &[StockData]) -> Vec<(NaiveDate, f32)>{
     let n = days as usize;
     let mut ema: Vec<(NaiveDate, f32)> = Vec::new();
     ema.push((stock_data[0].date, stock_data[0].close * m));
+    for i in 1..stock_data.len() {
+        ema.push((stock_data[i].date, stock_data[i].close * m + ema[i-1].1 * (1.0 - m)));
+    }
     ema
 }
 
