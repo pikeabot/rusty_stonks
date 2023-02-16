@@ -1,19 +1,22 @@
 #[path = "postgres_utils.rs"] mod postgres_utils;
 #[path = "indicators.rs"] mod indicators;
+use chrono::NaiveDate;
 use plotters::prelude::*;
+use plotters::prelude::full_palette::ORANGE;
+use postgres_utils::StockData;
 
 pub fn mean_reversion() -> Result<(), Box<dyn std::error::Error>> {
     let result_data = postgres_utils::get_stock_data("spy");
     let data = result_data.unwrap();
-    let rsi = indicators::rsi(&data);
+    let rsi = indicators::rsi(14.0,&data);
     let ema = indicators::ema(20.0, &data);
+    let sma = indicators::sma(20.0, &data);
 
-    let closing_prices = postgres_utils::get_stock_closes(&data);
-    draw_mean_reversion_chart(closing_prices, rsi, ema).expect("TODO: panic message");
+    draw_mean_reversion_chart(&data, rsi, ema, sma).expect("TODO: panic message");
     Ok(())
 }
 
-fn draw_mean_reversion_chart(closing_prices: Vec<f32>, rsi: Vec<f32>, ema: Vec<f32>) -> Result<(), Box<dyn std::error::Error>> {
+fn draw_mean_reversion_chart(stock_data: &[StockData], rsi: Vec<(NaiveDate, f32)>, ema: Vec<(NaiveDate, f32)>, sma: Vec<(NaiveDate, f32)>) -> Result<(), Box<dyn std::error::Error>> {
     // Draw chart
     let root = BitMapBackend::new("mean_reversion.png", (640, 480)).into_drawing_area();
     root.fill(&WHITE);
@@ -40,20 +43,26 @@ fn draw_mean_reversion_chart(closing_prices: Vec<f32>, rsi: Vec<f32>, ema: Vec<f
     let mut t_rsi = 14.0;
     // And we can draw something in the drawing area
     chart.draw_series(LineSeries::new(
-        rsi.into_iter().map(|x | {t_rsi+=1.0; (t_rsi, x) } ),
+        rsi.into_iter().map(|x | {t_rsi+=1.0; (t_rsi, x.1) } ),
         &RED,
     ))?;
 
     let mut t_ema = 1.0;
     chart.draw_series(LineSeries::new(
-        ema.into_iter().map(|x | {t_ema+=1.0; (t_ema, x) } ),
+        ema.into_iter().map(|x | {t_ema+=1.0; (t_ema, x.1) } ),
         &GREEN,
+    ))?;
+
+    let mut t_sma = 20.0;
+    chart.draw_series(LineSeries::new(
+        sma.into_iter().map(|x | {t_sma+=1.0; (t_sma, x.1) } ),
+        &ORANGE,
     ))?;
 
     let mut t_close = 0.0;
     // And we can draw something in the drawing area
     chart.draw_series(LineSeries::new(
-        closing_prices.into_iter().map(|x | {t_close+=1.0; (t_close, x) } ),
+        stock_data.into_iter().map(|x | {t_close+=1.0; (t_close, x.close) } ),
         &BLUE,
     ))?;
     root.present()?;
