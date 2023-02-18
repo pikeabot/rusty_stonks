@@ -1,6 +1,5 @@
 use chrono::NaiveDate;
-use postgres::{Client, Error, NoTls};
-use crate::mean_reversion::postgres_utils::StockData;
+use crate::postgres_utils::StockData;
 
 pub fn rsi(days: f32, stock_data: &[StockData]) -> Vec<(NaiveDate, f32)> {
     let n= days as usize;
@@ -61,9 +60,8 @@ pub fn ema(days: f32, stock_data: &[StockData]) -> Vec<(NaiveDate, f32)>{
     ema
 }
 
-pub fn bollinger_bands() {}
-
 pub fn on_balance_volume(stock_data: &[StockData]) -> Vec<(NaiveDate, i64)> {
+    //https://www.investopedia.com/terms/o/onbalancevolume.asp
     let mut obv: Vec<(NaiveDate, i64)> = Vec::new();
     obv.push((stock_data[0].date, stock_data[0].volume as i64));
     for i in 1..stock_data.len() {
@@ -78,6 +76,23 @@ pub fn on_balance_volume(stock_data: &[StockData]) -> Vec<(NaiveDate, i64)> {
     obv
 }
 
-pub fn standard_deviation() {}
+pub fn standard_deviation(days: f32, stock_data: &[StockData]) -> Vec<(NaiveDate, f32)>{
+    //https://www.investopedia.com/terms/s/standarddeviation.asp
+    let mut sd: Vec<(NaiveDate, f32)> = Vec::new();
+    let n = days as usize;
+    for i in n-1..stock_data.len() {
+        let mut mean_total = 0.0;
+        for j in i+1-n..i {
+            mean_total = mean_total+ stock_data[j].close;
+        }
+        let mean = mean_total/days;
+        let mut sd_total = 0.0;
+        for j in i+1-n..i {
+            sd_total = sd_total + (stock_data[j].close-mean).powf(2.0);
+        }
+        sd.push(( stock_data[i].date.clone(), sd_total/(days-1.0).sqrt() ));
+    }
+    sd
+}
 
-
+pub fn bollinger_bands() {}

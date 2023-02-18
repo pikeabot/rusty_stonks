@@ -11,14 +11,15 @@ pub fn mean_reversion() -> Result<(), Box<dyn std::error::Error>> {
     let rsi = indicators::rsi(14.0,&data);
     let ema = indicators::ema(20.0, &data);
     let sma = indicators::sma(20.0, &data);
-
+    let obv = indicators::on_balance_volume(&data);
+    let sd = indicators::standard_deviation(20.0, &data);
     draw_mean_reversion_chart(&data, rsi, ema, sma).expect("TODO: panic message");
     Ok(())
 }
 
 fn draw_mean_reversion_chart(stock_data: &[StockData], rsi: Vec<(NaiveDate, f32)>, ema: Vec<(NaiveDate, f32)>, sma: Vec<(NaiveDate, f32)>) -> Result<(), Box<dyn std::error::Error>> {
     // Draw chart
-    let root = BitMapBackend::new("mean_reversion.png", (640, 480)).into_drawing_area();
+    let root = BitMapBackend::new("algos.png", (640, 480)).into_drawing_area();
     root.fill(&WHITE);
     let root = root.margin(10, 10, 10, 10);
     // After this point, we should be able to draw construct a chart context
