@@ -12,8 +12,6 @@ Indexes:
     "SPY_pkey" PRIMARY KEY, btree (date)
  */
 
-use std::os::unix::fs::chroot;
-// use actix_web::cookie::Expiration::DateTime;
 use chrono::NaiveDate;
 use postgres::{Client, Error, NoTls};
 
@@ -49,7 +47,6 @@ pub fn get_stock_data(ticker: &str)  -> Result<Vec<StockData>, Error>{
         row_vector.push(stockdata);
     }
    row_vector.sort_by_key(|x| x.date);
-
     Ok(row_vector)
 }
 
