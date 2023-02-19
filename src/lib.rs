@@ -4,5 +4,4 @@ pub mod algos {
 }
 
 pub mod postgres_utils;
-
 pub mod indicators;
