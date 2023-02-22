@@ -38,10 +38,8 @@ pub fn sma(days: f32, stock_data: &[StockData]) -> Vec<(NaiveDate, f32)>{
     let mut sma: Vec<(NaiveDate, f32)> = Vec::new();
     let n = days as usize;
     for i in n-1..stock_data.len() {
-        let mut total = 0.0;
-        for j in i+1-n..i {
-            total += stock_data[j].close;
-        }
+        let data_set = &stock_data[i+1-n..i-1];
+        let total:f32 = data_set.iter().map(|x| x.close).sum();
         sma.push(( stock_data[i].date.clone(), total/days ));
     }
     sma
@@ -80,15 +78,10 @@ pub fn standard_deviation(days: f32, stock_data: &[StockData]) -> Vec<(NaiveDate
     let mut sd: Vec<(NaiveDate, f32)> = Vec::new();
     let n = days as usize;
     for i in n-1..stock_data.len() {
-        let mut mean_total = 0.0;
-        for j in i+1-n..i {
-            mean_total += stock_data[j].close;
-        }
+        let data_set = &stock_data[i+1-n..i-1];
+        let mean_total:f32 = data_set.iter().map(|x| x.close).sum();
         let mean = mean_total/days;
-        let mut sd_total = 0.0;
-        for j in i+1-n..i {
-            sd_total = sd_total + (stock_data[j].close-mean).powf(2.0);
-        }
+        let sd_total:f32 = data_set.iter().map(|x| x.close-mean.powf(2.0)).sum();
         sd.push(( stock_data[i].date.clone(), sd_total/(days-1.0).sqrt() ));
     }
     sd
