@@ -74,17 +74,29 @@ pub fn on_balance_volume(stock_data: &[StockData]) -> Vec<(NaiveDate, i64)> {
 }
 
 pub fn standard_deviation(days: f32, stock_data: &[StockData]) -> Vec<(NaiveDate, f32)>{
+    /*
+    Calculate the standard deviation of stock data using closing price and a given number
+    of days.
+    Returns a vector of standard deviations
+     */
     //https://www.investopedia.com/terms/s/standarddeviation.asp
-    let mut sd: Vec<(NaiveDate, f32)> = Vec::new();
+    let mut sd_vec: Vec<(NaiveDate, f32)> = Vec::new();
     let n = days as usize;
     for i in n-1..stock_data.len() {
-        let data_set = &stock_data[i+1-n..i-1];
-        let mean_total:f32 = data_set.iter().map(|x| x.close).sum();
-        let mean = mean_total/days;
-        let sd_total:f32 = data_set.iter().map(|x| x.close-mean.powf(2.0)).sum();
-        sd.push(( stock_data[i].date.clone(), sd_total/(days-1.0).sqrt() ));
+        let data_set = &stock_data[i+1-n..i-1].iter().map(|x| x.close).collect();
+        let sd = calculate_sd(data_set);
+        sd_vec.push((stock_data[i].date.clone(), sd));
     }
-    sd
+    sd_vec
+}
+
+fn calculate_sd(data_set:&Vec<f32>) -> f32 {
+    // calculate the standard deviation of a given set of data
+    let n = data_set.len() as f32;
+    let mean_total:f32 = data_set.iter().sum();
+    let mean = mean_total/n;
+    let sd_total:f32 = data_set.iter().map(|x| x-mean.powf(2.0)).sum();
+    sd_total/(n-1.0).sqrt()
 }
 
 pub fn bollinger_bands(stock_data: &[StockData]) -> Vec<(NaiveDate, f32, f32)> {
