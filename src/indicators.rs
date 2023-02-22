@@ -117,22 +117,23 @@ pub fn bollinger_bands(stock_data: &[StockData]) -> Vec<(NaiveDate, f32, f32)> {
     bollinger_bands
 }
 
-pub fn get_support_resistance(stock_data: &[StockData]) -> (Vec<(NaiveDate, f32)> ,Vec<(NaiveDate, f32)>){
+pub fn get_support_resistance(window: usize, stock_data: &[StockData]) -> (Vec<(NaiveDate, f32)> ,Vec<(NaiveDate, f32)>){
     //https://towardsdatascience.com/detection-of-price-support-and-resistance-levels-in-python-baedc44c34c9
     let mut support: Vec<(NaiveDate, f32)> = Vec::new();
     let mut resistance: Vec<(NaiveDate, f32)> = Vec::new();
     let candle_mean = calculate_candle_mean(&stock_data);
-    for i in 5..stock_data.len() {
-        let is_support = check_support(&stock_data[i-5..i]);
-        let is_resistance = check_resistance(&stock_data[i-5..i]);
+    for i in window..stock_data.len() {
+        let is_support = check_support(&stock_data[i-window..i]);
+        let is_resistance = check_resistance(&stock_data[i-window..i]);
+        let mid = window/2 + 1;
         if is_support {
-            if is_far_from_level(stock_data[i-3].low, candle_mean, &support) {
-                support.push((stock_data[i-3].date, stock_data[i-3].low));
+            if is_far_from_level(stock_data[i-mid].low, candle_mean, &support) {
+                support.push((stock_data[i-mid].date, stock_data[i-mid].low));
             }
         }
         if is_resistance {
-            if is_far_from_level(stock_data[i-3].high, candle_mean,&resistance) {
-                resistance.push((stock_data[i-3].date, stock_data[i-3].high));
+            if is_far_from_level(stock_data[i-mid].high, candle_mean,&resistance) {
+                resistance.push((stock_data[i-mid].date, stock_data[i-mid].high));
             }
         }
     }
