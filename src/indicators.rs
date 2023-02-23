@@ -96,24 +96,24 @@ fn calculate_sd(data_set:&Vec<f32>) -> f32 {
     let mean_total:f32 = data_set.iter().sum();
     let mean = mean_total/n;
     let sd_total:f32 = data_set.iter().map(|x| (x-mean).powf(2.0)).sum();
-    sd_total/(n-1.0).sqrt()
+    (sd_total/(n-1.0)).sqrt()
 }
 
 pub fn bollinger_bands(stock_data: &[StockData]) -> (Vec<(NaiveDate, f32)>, Vec<(NaiveDate, f32)>) {
     //https://www.investopedia.com/terms/b/bollingerbands.asp
-    let m = 20.0; //smoothing period
-    let n = 2.0; //standard deviations
+    let n = 20.0; //smoothing period
+    let m = 2.0; //standard deviations
 
     let mut bb_upper: Vec<(NaiveDate, f32)> = Vec::new();
     let mut bb_lower: Vec<(NaiveDate, f32)> = Vec::new();
-    let m_usize = m as usize;
-    for i in m_usize-1..stock_data.len() {
+    let n_usize = m as usize;
+    for i in n_usize-1..stock_data.len() {
         // let mut total = 0.0;
         // let typical_price = stock_data[i].high + (stock_data[i].low + stock_data[i].close)/3.0;
         // for j in i+1-musize..i {
         //     total += typical_price;
         // }
-        let data_set = &stock_data[i+1-m_usize..i+1];
+        let data_set = &stock_data[i+1-n_usize..i+1];
         let tp:Vec<f32> = data_set.iter().map(|x| (x.high + x.low + x.close)/3.0).collect();
         let tp_ma_sum : f32 = tp.iter().sum();
         let tp_ma = tp_ma_sum/m;
