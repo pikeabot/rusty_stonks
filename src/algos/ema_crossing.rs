@@ -1,17 +1,25 @@
 use chrono::NaiveDate;
 use plotters::prelude::*;
 use plotters::prelude::full_palette::ORANGE;
+use std::fs::File;
+use std::io::prelude::*;
+use crate::algos::algos_utils::{buy_shares, display_final_results, print_stock_data, sell_shares};
 use crate::postgres_utils::{get_stock_data, StockData};
 use crate::indicators::*;
 
 
 pub fn ema_crossing() -> Result<(), Box<dyn std::error::Error>> {
+    
     let result_data = get_stock_data("spy");
     let data_raw = result_data.unwrap();
     let ema20_raw = ema(20.0, &data_raw);
     let ema50 = ema(50.0, &data_raw);
     let initial_date = ema50[0].0;
+
+    let filename = "backtest_results/ema_crossing.txt";
     let portfolio_percentage = 0.1;
+    let mut balance = 10000.0;
+    let mut num_of_shares = 0.0;
 
     // find start date of data so they are all the same
     let mut data: &[StockData] = &[];
@@ -30,32 +38,26 @@ pub fn ema_crossing() -> Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    let mut balance = 10000.0;
-    let mut num_of_shares = 0.0;
+    println!("EMA CROSSING");
+    println!("______________");
+    let mut file = File::create(filename)?;
+    writeln!(file, "EMA CROSSING")?;
+    writeln!(file, "_______________")?;
 
     for i in 0..data.len() {
         if num_of_shares == 0.0 {
             // buy
             if ema20[i].1 > ema50[i].1 {
-                let total_bet = balance * portfolio_percentage;
-                num_of_shares = (total_bet/data[i].close).floor();
-                let cost = (num_of_shares * data[i].close);
-                balance = balance - cost;
-                println!("Buying {} shares for {} for total cost of {}", num_of_shares, data[i].close, cost);
-                println!("{}: Balance of {}", data[i].date, balance);
+                (num_of_shares, balance) = buy_shares(balance, portfolio_percentage, data[i].close, data[i].date, &mut file);
             }
         } else {
             // sell
             if ema20[i].1 < ema50[i].1 {
-                let profit = (num_of_shares * data[i].close);
-                balance = balance + profit;
-                num_of_shares = 0.0;
-                println!("Sold for {} for a total of {}", data[i].close, profit);
-                println!("{}: Balance of {}", data[i].date, balance);
+                (num_of_shares, balance) = sell_shares(balance, num_of_shares, data[i].close, data[i].date, &mut file);
             }
         }
     }
-    println!("Total profit: {}", balance);
+    display_final_results(balance, num_of_shares, data[data.len()-1].close, data[data.len()-1].date, &mut file);
     draw_chart(&data_raw, ema20_raw, ema50).expect("TODO: panic message");
     Ok(())
 }
