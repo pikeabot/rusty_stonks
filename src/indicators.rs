@@ -83,7 +83,7 @@ pub fn standard_deviation(days: f32, stock_data: &[StockData]) -> Vec<(NaiveDate
     let mut sd_vec: Vec<(NaiveDate, f32)> = Vec::new();
     let n = days as usize;
     for i in n-1..stock_data.len() {
-        let data_set = &stock_data[i+1-n..i-1].iter().map(|x| x.close).collect();
+        let data_set = &stock_data[i+1-n..i+1].iter().map(|x| x.close).collect();
         let sd = calculate_sd(data_set);
         sd_vec.push((stock_data[i].date.clone(), sd));
     }
@@ -95,31 +95,35 @@ fn calculate_sd(data_set:&Vec<f32>) -> f32 {
     let n = data_set.len() as f32;
     let mean_total:f32 = data_set.iter().sum();
     let mean = mean_total/n;
-    let sd_total:f32 = data_set.iter().map(|x| x-mean.powf(2.0)).sum();
+    let sd_total:f32 = data_set.iter().map(|x| (x-mean).powf(2.0)).sum();
     sd_total/(n-1.0).sqrt()
 }
 
-pub fn bollinger_bands(stock_data: &[StockData]) -> Vec<(NaiveDate, f32, f32)> {
+pub fn bollinger_bands(stock_data: &[StockData]) -> (Vec<(NaiveDate, f32)>, Vec<(NaiveDate, f32)>) {
     //https://www.investopedia.com/terms/b/bollingerbands.asp
     let m = 20.0; //smoothing period
     let n = 2.0; //standard deviations
 
-    let mut bollinger_bands: Vec<(NaiveDate, f32, f32)> = Vec::new();
-    let t = m as usize;
-    for i in t-1..stock_data.len() {
-        let mut total = 0.0;
-        let typical_price = stock_data[i].high + (stock_data[i].low + stock_data[i].close)/3.0;
-        for j in i+1-t..i {
-            total += typical_price;
-        }
-        let tp_ma = total/m;
-        // TODO: fix this
-        let sigma = standard_deviation(m, stock_data)[0];
-        let upper = tp_ma + m * sigma.1;
-        let lower = tp_ma - m * sigma.1;
-        bollinger_bands.push(( stock_data[i].date.clone(), upper, lower));
+    let mut bb_upper: Vec<(NaiveDate, f32)> = Vec::new();
+    let mut bb_lower: Vec<(NaiveDate, f32)> = Vec::new();
+    let m_usize = m as usize;
+    for i in m_usize-1..stock_data.len() {
+        // let mut total = 0.0;
+        // let typical_price = stock_data[i].high + (stock_data[i].low + stock_data[i].close)/3.0;
+        // for j in i+1-musize..i {
+        //     total += typical_price;
+        // }
+        let data_set = &stock_data[i+1-m_usize..i-1];
+        let tp:Vec<f32> = data_set.iter().map(|x| (x.high + x.low + x.close)/3.0).collect();
+        let tp_ma_sum : f32 = tp.iter().sum();
+        let tp_ma = tp_ma_sum/m;
+        let sigma = calculate_sd(&tp);
+        let upper = tp_ma + m * sigma;
+        let lower = tp_ma - m * sigma;
+        bb_upper.push(( stock_data[i].date.clone(), upper));
+        bb_lower.push(( stock_data[i].date.clone(), lower));
     }
-    bollinger_bands
+    (bb_upper, bb_lower)
 }
 
 pub fn get_support_resistance(window: usize, stock_data: &[StockData]) -> (Vec<(NaiveDate, f32)> ,Vec<(NaiveDate, f32)>){
