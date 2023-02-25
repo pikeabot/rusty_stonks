@@ -1,32 +1,33 @@
 use chrono::NaiveDate;
 use crate::postgres_utils::StockData;
 
-pub fn rsi(days: f32, stock_data: &[StockData]) -> Vec<(NaiveDate, f32)> {
-    let n= days as usize;
-    // https://www.investopedia.com/terms/r/rsi.asp
-    let mut init_avg_gain: Vec<f32> = Vec::new();
-    let mut init_avg_loss: Vec<f32> = Vec::new();
-    for i in n-1..stock_data.len() {
-        let mut upward: f32 = 0.0;
-        let mut downward: f32 = 0.0;
-        for j in i+2-n..i {
-            if stock_data[j].close > stock_data[j-1].close {
-                upward = upward + stock_data[j].close;
-            } else if stock_data[j].close < stock_data[j-1].close {
-                downward = downward + stock_data[j].close;
-            }
-        }
-        let daily_init_avg_gain = upward/days;
-        let daily_init_avg_loss = downward/days;
-        init_avg_gain.push(daily_init_avg_gain);
-        init_avg_loss.push(daily_init_avg_loss);
-    }
+pub fn rsi(window: f32, stock_data: &[StockData]) -> Vec<(NaiveDate, f32)> {
+    let n= window as usize;
     let mut rsi: Vec<(NaiveDate, f32)> = Vec::new();
-    for i in 1..init_avg_gain.len() {
-        let avg_gain: f32 = (init_avg_gain[i-1] * 13.0 + init_avg_gain[i])/days;
-        let avg_loss:f32  = (init_avg_loss[i-1] * 13.0 + init_avg_loss[i])/days;
-        let rsi_0: f32 = 100.0 - (100.0/(1.0+avg_gain/avg_loss));
-        let id = (stock_data[i+n-1].date, rsi_0 );
+    // https://www.investopedia.com/terms/r/rsi.asp
+    // https://www.omnicalculator.com/finance/rsi
+    let mut daily_gain: Vec<f32> = Vec::new();
+    let mut daily_loss: Vec<f32> = Vec::new();
+    for i in 1..stock_data.len() {
+        if stock_data[i].close > stock_data[i-1].close {
+            daily_gain.push(stock_data[i].close - stock_data[i-1].close);
+            daily_loss.push(0.0);
+            } else if stock_data[i].close < stock_data[i-1].close {
+                daily_loss.push(stock_data[i-1].close - stock_data[i].close);
+                daily_gain.push(0.0);
+            } else {
+                daily_gain.push(0.0);
+                daily_loss.push(0.0);
+            }
+    }
+
+    for i in n..stock_data.len() {
+        let prev_gain: &f32 = &daily_gain[i-n..i].iter().sum();
+        let prev_loss: &f32 = &daily_loss[i-n..i].iter().sum();
+        let new_gain: f32 = prev_gain * 13.0 + daily_gain[i-1];
+        let new_loss:f32  = prev_loss * 13.0 + daily_loss[i-1];
+        let new_rsi: f32 = 100.0 - (100.0/(1.0+new_gain/new_loss));
+        let id = (stock_data[i].date, new_rsi );
         rsi.push(id);
     }
     rsi
@@ -189,4 +190,3 @@ fn is_far_from_level(level: f32, candle_mean: f32, levels: &[(NaiveDate, f32)] )
     }
     false
 }
-
