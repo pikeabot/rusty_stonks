@@ -1,63 +1,40 @@
 use chrono::NaiveDate;
+use ta::indicators::*;
+use ta::Next;
 use crate::postgres_utils::StockData;
 
-pub fn rsi(window: f32, stock_data: &[StockData]) -> Vec<(NaiveDate, f32)> {
-    let n= window as usize;
-    let mut rsi: Vec<(NaiveDate, f32)> = Vec::new();
-    // https://www.investopedia.com/terms/r/rsi.asp
-    // https://www.omnicalculator.com/finance/rsi
-    let mut daily_gain: Vec<f32> = Vec::new();
-    let mut daily_loss: Vec<f32> = Vec::new();
-    for i in 1..stock_data.len() {
-        if stock_data[i].close > stock_data[i-1].close {
-            daily_gain.push(stock_data[i].close - stock_data[i-1].close);
-            daily_loss.push(0.0);
-            } else if stock_data[i].close < stock_data[i-1].close {
-                daily_loss.push(stock_data[i-1].close - stock_data[i].close);
-                daily_gain.push(0.0);
-            } else {
-                daily_gain.push(0.0);
-                daily_loss.push(0.0);
-            }
+fn format_ta<T: Next<f64, Output = f64>>(mut ta_obj: T, stock_data: &[StockData]) -> Vec<(NaiveDate, f64)> {
+    let mut ta_vec: Vec<(NaiveDate, f64)> = Vec::new();
+    for i in 0..stock_data.len() {
+        ta_vec.push((stock_data[i].date, ta_obj.next(stock_data[i].close as f64)));
     }
-
-    for i in n..stock_data.len() {
-        let prev_gain: &f32 = &daily_gain[i-n..i].iter().sum();
-        let prev_loss: &f32 = &daily_loss[i-n..i].iter().sum();
-        let new_gain: f32 = prev_gain * 13.0 + daily_gain[i-1];
-        let new_loss:f32  = prev_loss * 13.0 + daily_loss[i-1];
-        let new_rsi: f32 = 100.0 - (100.0/(1.0+new_gain/new_loss));
-        let id = (stock_data[i].date, new_rsi );
-        rsi.push(id);
-    }
-    rsi
-
+    ta_vec
 }
 
-pub fn sma(days: f32, stock_data: &[StockData]) -> Vec<(NaiveDate, f32)>{
-    //https://www.investopedia.com/terms/s/sma.asp#toc-what-is-a-simple-moving-average-sma
-    let mut sma: Vec<(NaiveDate, f32)> = Vec::new();
-    let n = days as usize;
-    for i in n-1..stock_data.len() {
-        let data_set = &stock_data[i+1-n..i+1];
-        let total:f32 = data_set.iter().map(|x| x.close).sum();
-        sma.push(( stock_data[i].date.clone(), total/days ));
-    }
-    sma
+pub fn get_rsi_vec(window: usize, stock_data: &[StockData]) -> Vec<(NaiveDate, f64)> {
+    let mut rsi_obj = RelativeStrengthIndex::new(window).unwrap();
+    let mut rsi_vec : Vec<(NaiveDate, f64)> = format_ta(rsi_obj, &stock_data);
+    rsi_vec
 }
 
-pub fn ema(days: f32, stock_data: &[StockData]) -> Vec<(NaiveDate, f32)>{
-    // https://www.investopedia.com/terms/e/ema.asp#toc-calculating-the-ema
-    let smoothing = 2.0;
-    let m = smoothing/(1.0 + days);
-    let mut ema: Vec<(NaiveDate, f32)> = Vec::new();
-    ema.push((stock_data[0].date, stock_data[0].close * m));
-    for i in 1..stock_data.len() {
-        ema.push((stock_data[i].date, stock_data[i].close * m + ema[i-1].1 * (1.0 - m)));
-    }
-    ema
+
+pub fn get_sma_vec(window: usize, stock_data: &[StockData]) -> Vec<(NaiveDate, f64)> {
+    let mut sma_obj = SimpleMovingAverage::new(window).unwrap();
+    let mut sma_vec: Vec<(NaiveDate, f64)> = format_ta(sma_obj, &stock_data);
+    sma_vec
 }
 
+pub fn get_ema_vec(window: usize, stock_data: &[StockData]) -> Vec<(NaiveDate, f64)> {
+    let mut ema_obj = ExponentialMovingAverage::new(window).unwrap();
+    let mut ema_vec: Vec<(NaiveDate, f64)> = format_ta(ema_obj, &stock_data);
+    ema_vec
+}
+
+pub fn get_standard_deviation_vec(window: usize, stock_data: &[StockData]) -> Vec<(NaiveDate, f64)> {
+    let mut sd_obj = StandardDeviation::new(window).unwrap();
+    let mut sd_vec: Vec<(NaiveDate, f64)> = format_ta(sd_obj, &stock_data);
+    sd_vec
+}
 pub fn on_balance_volume(stock_data: &[StockData]) -> Vec<(NaiveDate, i64)> {
     //https://www.investopedia.com/terms/o/onbalancevolume.asp
     let mut obv: Vec<(NaiveDate, i64)> = Vec::new();
@@ -72,23 +49,6 @@ pub fn on_balance_volume(stock_data: &[StockData]) -> Vec<(NaiveDate, i64)> {
         obv.push((stock_data[i].date, vol));
     }
     obv
-}
-
-pub fn standard_deviation(days: f32, stock_data: &[StockData]) -> Vec<(NaiveDate, f32)>{
-    /*
-    Calculate the standard deviation of stock data using closing price and a given number
-    of days.
-    Returns a vector of standard deviations
-     */
-    //https://www.investopedia.com/terms/s/standarddeviation.asp
-    let mut sd_vec: Vec<(NaiveDate, f32)> = Vec::new();
-    let n = days as usize;
-    for i in n-1..stock_data.len() {
-        let data_set = &stock_data[i+1-n..i+1].iter().map(|x| x.close).collect();
-        let sd = calculate_sd(data_set);
-        sd_vec.push((stock_data[i].date.clone(), sd));
-    }
-    sd_vec
 }
 
 fn calculate_sd(data_set:&Vec<f32>) -> f32 {
