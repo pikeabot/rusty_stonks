@@ -1,7 +1,8 @@
 use chrono::NaiveDate;
 use ta::indicators::*;
-use ta::Next;
+use ta::{Next, DataItem};
 use crate::postgres_utils::StockData;
+
 
 fn format_ta_64<T: Next<f64, Output = f64>>(mut ta_obj: T, stock_data: &[StockData]) -> Vec<(NaiveDate, f64)> {
     let mut ta_vec: Vec<(NaiveDate, f64)> = Vec::new();
@@ -10,6 +11,7 @@ fn format_ta_64<T: Next<f64, Output = f64>>(mut ta_obj: T, stock_data: &[StockDa
     }
     ta_vec
 }
+
 
 pub fn get_rsi_vec(window: usize, stock_data: &[StockData]) -> Vec<(NaiveDate, f64)> {
     let mut rsi_obj = RelativeStrengthIndex::new(window).unwrap();
@@ -30,6 +32,7 @@ pub fn get_ema_vec(window: usize, stock_data: &[StockData]) -> Vec<(NaiveDate, f
     ema_vec
 }
 
+
 pub fn get_standard_deviation_vec(window: usize, stock_data: &[StockData]) -> Vec<(NaiveDate, f64)> {
     let mut sd_obj = StandardDeviation::new(window).unwrap();
     let mut sd_vec: Vec<(NaiveDate, f64)> = format_ta_64(sd_obj, &stock_data);
@@ -46,21 +49,23 @@ pub fn get_bollinger_band_vec(window: usize, multiplier: f64, stock_data: &[Stoc
     bb_vec
 }
 
-// pub fn on_balance_volume(stock_data: &[StockData]) -> Vec<(NaiveDate, i64)> {
-//     //https://www.investopedia.com/terms/o/onbalancevolume.asp
-//     let mut obv: Vec<(NaiveDate, i64)> = Vec::new();
-//     obv.push((stock_data[0].date, stock_data[0].volume as i64));
-//     for i in 1..stock_data.len() {
-//         let mut vol: i64 = 0;
-//         if stock_data[i].close > stock_data[i-1].close {
-//             vol = obv[i-1].1 + stock_data[i].volume as i64;
-//         }   else if stock_data[i].close < stock_data[i-1].close  {
-//             vol = obv[i-1].1 - stock_data[i].volume as i64;
-//         }
-//         obv.push((stock_data[i].date, vol));
-//     }
-//     obv
-// }
+
+pub fn get_on_balance_volume_vec(stock_data: &[StockData]) -> Vec<(NaiveDate, f64)> {
+    let mut obv_obj = OnBalanceVolume::new();
+    let mut obv_vec: Vec<(NaiveDate, f64)> = Vec::new();
+    for i in 0..stock_data.len() {
+        let data_item = DataItem::builder()
+            .high(stock_data[i].high as f64)
+            .low(stock_data[i].low as f64)
+            .close(stock_data[i].close as f64)
+            .open(stock_data[i].open as f64)
+            .volume(stock_data[i].volume as f64)
+            .build().unwrap();
+        obv_vec.push((stock_data[i].date, obv_obj.next(&data_item)));
+    }
+    obv_vec
+}
+
 
 fn calculate_sd(data_set:&Vec<f32>) -> f32 {
     // calculate the standard deviation of a given set of data
@@ -71,32 +76,6 @@ fn calculate_sd(data_set:&Vec<f32>) -> f32 {
     (sd_total/(n-1.0)).sqrt()
 }
 
-pub fn bollinger_bands(stock_data: &[StockData]) -> (Vec<(NaiveDate, f32)>, Vec<(NaiveDate, f32)>) {
-    //https://www.investopedia.com/terms/b/bollingerbands.asp
-    let n = 20.0; //smoothing period
-    let m = 2.0; //standard deviations
-
-    let mut bb_upper: Vec<(NaiveDate, f32)> = Vec::new();
-    let mut bb_lower: Vec<(NaiveDate, f32)> = Vec::new();
-    let n_usize = m as usize;
-    for i in n_usize-1..stock_data.len() {
-        // let mut total = 0.0;
-        // let typical_price = stock_data[i].high + (stock_data[i].low + stock_data[i].close)/3.0;
-        // for j in i+1-musize..i {
-        //     total += typical_price;
-        // }
-        let data_set = &stock_data[i+1-n_usize..i+1];
-        let tp:Vec<f32> = data_set.iter().map(|x| (x.high + x.low + x.close)/3.0).collect();
-        let tp_ma_sum : f32 = tp.iter().sum();
-        let tp_ma = tp_ma_sum/m;
-        let sigma = calculate_sd(&tp);
-        let upper = tp_ma + m * sigma;
-        let lower = tp_ma - m * sigma;
-        bb_upper.push(( stock_data[i].date.clone(), upper));
-        bb_lower.push(( stock_data[i].date.clone(), lower));
-    }
-    (bb_upper, bb_lower)
-}
 
 pub fn get_support_resistance(window: usize, stock_data: &[StockData]) -> (Vec<(NaiveDate, f32)> ,Vec<(NaiveDate, f32)>){
     //https://towardsdatascience.com/detection-of-price-support-and-resistance-levels-in-python-baedc44c34c9
@@ -121,6 +100,7 @@ pub fn get_support_resistance(window: usize, stock_data: &[StockData]) -> (Vec<(
     (support, resistance)
 }
 
+
 fn check_support(fractal: &[StockData]) -> bool {
     // assumes fractal has a length of 5
     if fractal[0].low > fractal[1].low && fractal[1].low > fractal[2].low
@@ -129,6 +109,7 @@ fn check_support(fractal: &[StockData]) -> bool {
     }
     false
 }
+
 
 fn check_resistance(fractal: &[StockData]) -> bool {
     // assumes fractal has a length of 5
@@ -139,6 +120,7 @@ fn check_resistance(fractal: &[StockData]) -> bool {
     false
 }
 
+
 fn calculate_candle_mean(stock_data: &[StockData]) -> f32 {
     // get the average length of a candlestick
     let mut total = 0.0;
@@ -147,6 +129,7 @@ fn calculate_candle_mean(stock_data: &[StockData]) -> f32 {
     }
     total/stock_data.len() as f32
 }
+
 
 fn is_far_from_level(level: f32, candle_mean: f32, levels: &[(NaiveDate, f32)] ) -> bool{
     //def isFarFromLevel(l):
