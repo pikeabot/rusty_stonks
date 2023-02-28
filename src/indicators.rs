@@ -3,7 +3,7 @@ use ta::indicators::*;
 use ta::Next;
 use crate::postgres_utils::StockData;
 
-fn format_ta<T: Next<f64, Output = f64>>(mut ta_obj: T, stock_data: &[StockData]) -> Vec<(NaiveDate, f64)> {
+fn format_ta_64<T: Next<f64, Output = f64>>(mut ta_obj: T, stock_data: &[StockData]) -> Vec<(NaiveDate, f64)> {
     let mut ta_vec: Vec<(NaiveDate, f64)> = Vec::new();
     for i in 0..stock_data.len() {
         ta_vec.push((stock_data[i].date, ta_obj.next(stock_data[i].close as f64)));
@@ -13,43 +13,54 @@ fn format_ta<T: Next<f64, Output = f64>>(mut ta_obj: T, stock_data: &[StockData]
 
 pub fn get_rsi_vec(window: usize, stock_data: &[StockData]) -> Vec<(NaiveDate, f64)> {
     let mut rsi_obj = RelativeStrengthIndex::new(window).unwrap();
-    let mut rsi_vec : Vec<(NaiveDate, f64)> = format_ta(rsi_obj, &stock_data);
+    let mut rsi_vec : Vec<(NaiveDate, f64)> = format_ta_64(rsi_obj, &stock_data);
     rsi_vec
 }
 
 
 pub fn get_sma_vec(window: usize, stock_data: &[StockData]) -> Vec<(NaiveDate, f64)> {
     let mut sma_obj = SimpleMovingAverage::new(window).unwrap();
-    let mut sma_vec: Vec<(NaiveDate, f64)> = format_ta(sma_obj, &stock_data);
+    let mut sma_vec: Vec<(NaiveDate, f64)> = format_ta_64(sma_obj, &stock_data);
     sma_vec
 }
 
 pub fn get_ema_vec(window: usize, stock_data: &[StockData]) -> Vec<(NaiveDate, f64)> {
     let mut ema_obj = ExponentialMovingAverage::new(window).unwrap();
-    let mut ema_vec: Vec<(NaiveDate, f64)> = format_ta(ema_obj, &stock_data);
+    let mut ema_vec: Vec<(NaiveDate, f64)> = format_ta_64(ema_obj, &stock_data);
     ema_vec
 }
 
 pub fn get_standard_deviation_vec(window: usize, stock_data: &[StockData]) -> Vec<(NaiveDate, f64)> {
     let mut sd_obj = StandardDeviation::new(window).unwrap();
-    let mut sd_vec: Vec<(NaiveDate, f64)> = format_ta(sd_obj, &stock_data);
+    let mut sd_vec: Vec<(NaiveDate, f64)> = format_ta_64(sd_obj, &stock_data);
     sd_vec
 }
-pub fn on_balance_volume(stock_data: &[StockData]) -> Vec<(NaiveDate, i64)> {
-    //https://www.investopedia.com/terms/o/onbalancevolume.asp
-    let mut obv: Vec<(NaiveDate, i64)> = Vec::new();
-    obv.push((stock_data[0].date, stock_data[0].volume as i64));
-    for i in 1..stock_data.len() {
-        let mut vol: i64 = 0;
-        if stock_data[i].close > stock_data[i-1].close {
-            vol = obv[i-1].1 + stock_data[i].volume as i64;
-        }   else if stock_data[i].close < stock_data[i-1].close  {
-            vol = obv[i-1].1 - stock_data[i].volume as i64;
-        }
-        obv.push((stock_data[i].date, vol));
+
+
+pub fn get_bollinger_band_vec(window: usize, multiplier: f64, stock_data: &[StockData]) -> Vec<(NaiveDate, BollingerBandsOutput)> {
+    let mut bb_obj = BollingerBands::new(window, multiplier).unwrap();
+    let mut bb_vec: Vec<(NaiveDate, BollingerBandsOutput)> = Vec::new();
+    for i in 0..stock_data.len() {
+        bb_vec.push((stock_data[i].date, bb_obj.next(stock_data[i].close as f64)));
     }
-    obv
+    bb_vec
 }
+
+// pub fn on_balance_volume(stock_data: &[StockData]) -> Vec<(NaiveDate, i64)> {
+//     //https://www.investopedia.com/terms/o/onbalancevolume.asp
+//     let mut obv: Vec<(NaiveDate, i64)> = Vec::new();
+//     obv.push((stock_data[0].date, stock_data[0].volume as i64));
+//     for i in 1..stock_data.len() {
+//         let mut vol: i64 = 0;
+//         if stock_data[i].close > stock_data[i-1].close {
+//             vol = obv[i-1].1 + stock_data[i].volume as i64;
+//         }   else if stock_data[i].close < stock_data[i-1].close  {
+//             vol = obv[i-1].1 - stock_data[i].volume as i64;
+//         }
+//         obv.push((stock_data[i].date, vol));
+//     }
+//     obv
+// }
 
 fn calculate_sd(data_set:&Vec<f32>) -> f32 {
     // calculate the standard deviation of a given set of data
