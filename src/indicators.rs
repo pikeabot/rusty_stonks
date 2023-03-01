@@ -66,6 +66,22 @@ pub fn get_on_balance_volume_vec(stock_data: &[StockData]) -> Vec<(NaiveDate, f6
     obv_vec
 }
 
+pub fn get_on_average_true_range_vec(window: usize, stock_data: &[StockData]) -> Vec<(NaiveDate, f64)> {
+    let mut atr_obj = AverageTrueRange::new(window).unwrap();
+    let mut atr_vec: Vec<(NaiveDate, f64)> = Vec::new();
+    for i in 0..stock_data.len() {
+        let data_item = DataItem::builder()
+            .high(stock_data[i].high as f64)
+            .low(stock_data[i].low as f64)
+            .close(stock_data[i].close as f64)
+            .open(stock_data[i].open as f64)
+            .volume(stock_data[i].volume as f64)
+            .build().unwrap();
+        atr_vec.push((stock_data[i].date, atr_obj.next(&data_item)));
+    }
+    atr_vec
+}
+
 
 fn calculate_sd(data_set:&Vec<f32>) -> f32 {
     // calculate the standard deviation of a given set of data
