@@ -49,6 +49,15 @@ pub fn get_bollinger_band_vec(window: usize, multiplier: f64, stock_data: &[Stoc
     bb_vec
 }
 
+pub fn get_keltner_channel_vec(window: usize, multiplier: f64, stock_data: &[StockData]) -> Vec<(NaiveDate, KeltnerChannelOutput)> {
+    let mut kc_obj = KeltnerChannel::new(window, 2.0_f64).unwrap();
+    let mut kc_vec: Vec<(NaiveDate, KeltnerChannelOutput)> = Vec::new();
+    for i in 0..stock_data.len() {
+        kc_vec.push((stock_data[i].date, kc_obj.next(stock_data[i].close as f64)));
+    }
+    kc_vec
+}
+
 
 pub fn get_on_balance_volume_vec(stock_data: &[StockData]) -> Vec<(NaiveDate, f64)> {
     let mut obv_obj = OnBalanceVolume::new();
